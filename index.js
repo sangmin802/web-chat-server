@@ -32,6 +32,7 @@ webChat.on("connection", socket => {
   });
 
   socket.emit("users", userStore.findAllUser());
+  socket.emit("session", socket.userID);
 
   socket.broadcast.emit("user connected", {
     userID: socket.userID,
