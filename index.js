@@ -40,10 +40,13 @@ webChat.on("connection", socket => {
     userName: socket.userName,
   });
 
-  socket.on("send public message", message => {
-    io.of("/web-chat").emit("send public message", {
-      content: message,
-      from: socket.userName,
+  socket.on("public message", content => {
+    io.of("/web-chat").emit("public message", {
+      content,
+      from: {
+        userName: socket.userName,
+        userID: socket.userID,
+      },
     });
   });
 
