@@ -35,6 +35,7 @@ webChat.on("connection", socket => {
   socket.emit("session", socket.userID);
 
   socket.join(socket.userID);
+
   socket.broadcast.emit("user connected", {
     userID: socket.userID,
     userName: socket.userName,
@@ -48,6 +49,20 @@ webChat.on("connection", socket => {
         userID: socket.userID,
       },
     });
+  });
+
+  socket.on("private message", ({ content, to }) => {
+    io.of("/web-chat")
+      .to(socket.userID)
+      .to(to.userID)
+      .emit("private message", {
+        content,
+        from: {
+          userName: socket.userName,
+          userID: socket.userID,
+        },
+        to,
+      });
   });
 
   socket.on("disconnect", () => {
