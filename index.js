@@ -5,6 +5,8 @@ const app = express();
 const port = 3001;
 const { UserStore } = require("./user-store");
 const userStore = new UserStore();
+const { RoomStore } = require("./room-store");
+const roomStore = new RoomStore();
 
 const server = app.listen(port, () => {
   console.log(`server is connected on ${port}`);
@@ -29,16 +31,26 @@ webChat.on("connection", socket => {
   userStore.saveUser(socket.userID, {
     userID: socket.userID,
     userName: socket.userName,
+    self: false,
+    messages: {
+      size: 0,
+      recent: null,
+    },
   });
 
-  socket.emit("users", userStore.findAllUser());
   socket.emit("session", socket.userID);
 
-  socket.join(socket.userID);
+  socket.emit("users", userStore.findAllUser());
+  socket.emit("rooms", roomStore.findAllRoom());
 
   socket.broadcast.emit("user connected", {
     userID: socket.userID,
     userName: socket.userName,
+    self: false,
+    messages: {
+      size: 0,
+      recent: null,
+    },
   });
 
   socket.on("public message", content => {
@@ -50,6 +62,8 @@ webChat.on("connection", socket => {
       },
     });
   });
+
+  socket.join(socket.userID);
 
   socket.on("private message", ({ content, to }) => {
     io.of("/web-chat")
