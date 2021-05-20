@@ -93,6 +93,21 @@ webChat.on("connection", socket => {
     roomStore.saveRoom(roomID, room);
     io.of("/web-chat").emit("room created", room);
   });
+  socket.on("join room", roomID => {
+    const room = roomStore.findRoom(roomID);
+    const user = { userName: socket.userName, userID: socket.userID };
+    socket.join(roomID);
+    room.users.push(user);
+    roomStore.saveRoom(roomID, room);
+    io.of("/web-chat").emit("join room", { user, roomID });
+    io.of("/web-chat")
+      .to(roomID)
+      .emit("room message", {
+        message: {
+          content: `${socket.userName}님이 입장하셨습니다.`,
+        },
+        roomID,
+      });
   socket.on("disconnect", () => {
     socket.broadcast.emit("user disconnected", {
       userID: socket.userID,
