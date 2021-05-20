@@ -33,7 +33,7 @@ webChat.on("connection", socket => {
     userName: socket.userName,
     self: false,
     messages: {
-      size: 0,
+      hasNewMessages: 0,
       recent: null,
     },
   });
@@ -48,7 +48,7 @@ webChat.on("connection", socket => {
     userName: socket.userName,
     self: false,
     messages: {
-      size: 0,
+      hasNewMessages: 0,
       recent: null,
     },
   });
@@ -93,6 +93,7 @@ webChat.on("connection", socket => {
     roomStore.saveRoom(roomID, room);
     io.of("/web-chat").emit("room created", room);
   });
+
   socket.on("join room", roomID => {
     const room = roomStore.findRoom(roomID);
     const user = { userName: socket.userName, userID: socket.userID };
@@ -108,6 +109,8 @@ webChat.on("connection", socket => {
         },
         roomID,
       });
+  });
+
   socket.on("leave room", roomID => {
     const room = roomStore.findRoom(roomID);
     const user = { userName: socket.userName, userID: socket.userID };
@@ -126,6 +129,8 @@ webChat.on("connection", socket => {
         },
         roomID,
       });
+  });
+
   socket.on("room message", ({ message, roomID }) => {
     io.of("/web-chat")
       .to(roomID)
