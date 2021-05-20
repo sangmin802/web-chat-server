@@ -79,6 +79,20 @@ webChat.on("connection", socket => {
       });
   });
 
+  socket.on("create room", () => {
+    const roomID = randomID();
+    const room = {
+      creater: socket.userID,
+      isJoined: false,
+      roomID,
+      roomName: roomID,
+      users: [],
+      messages: [],
+      hasNewMessages: 0,
+    };
+    roomStore.saveRoom(roomID, room);
+    io.of("/web-chat").emit("room created", room);
+  });
   socket.on("disconnect", () => {
     socket.broadcast.emit("user disconnected", {
       userID: socket.userID,
