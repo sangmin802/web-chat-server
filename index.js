@@ -108,6 +108,24 @@ webChat.on("connection", socket => {
         },
         roomID,
       });
+  socket.on("leave room", roomID => {
+    const room = roomStore.findRoom(roomID);
+    const user = { userName: socket.userName, userID: socket.userID };
+    socket.leave(roomID);
+    const filteredUsers = room.users.filter(
+      user => user.userID !== socket.userID
+    );
+    room.users = filteredUsers;
+    roomStore.saveRoom(roomID, room);
+    io.of("/web-chat").emit("leave room", { user, roomID });
+    io.of("/web-chat")
+      .to(roomID)
+      .emit("room message", {
+        message: {
+          content: `${socket.userName}님이 퇴장하셨습니다.`,
+        },
+        roomID,
+      });
   socket.on("disconnect", () => {
     socket.broadcast.emit("user disconnected", {
       userID: socket.userID,
