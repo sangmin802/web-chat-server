@@ -126,6 +126,21 @@ webChat.on("connection", socket => {
         },
         roomID,
       });
+  socket.on("room message", ({ message, roomID }) => {
+    io.of("/web-chat")
+      .to(roomID)
+      .emit("room message", {
+        message: {
+          content: message,
+          from: {
+            userName: socket.userName,
+            userID: socket.userID,
+          },
+        },
+        roomID,
+      });
+  });
+
   socket.on("disconnect", () => {
     socket.broadcast.emit("user disconnected", {
       userID: socket.userID,
