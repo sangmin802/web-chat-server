@@ -2,6 +2,7 @@ class UserStoreMethods {
   saveUser(id, user) {}
   removeUser(id) {}
   findAllUser() {}
+  findUser(id) {}
 }
 
 class UserStore extends UserStoreMethods {
@@ -20,6 +21,10 @@ class UserStore extends UserStoreMethods {
 
   findAllUser() {
     return [...this.users.values()];
+  }
+
+  findUser(id) {
+    return this.users.get(id);
   }
 }
 
