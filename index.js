@@ -22,7 +22,9 @@ const webChat = io.of("/web-chat");
 webChat.use((socket, next) => {
   const userName = socket.handshake.auth.userName;
   if (!userName) return next(new Error("invalid userName"));
-  socket.userID = randomID();
+  const userID = randomID();
+  socket.id = userID;
+  socket.userID = userID;
   socket.userName = userName;
   next();
 });
