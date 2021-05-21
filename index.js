@@ -56,7 +56,7 @@ webChat.on("connection", socket => {
   });
 
   socket.on("public message", content => {
-    io.of("/web-chat").emit("public message", {
+    webChat.emit("public message", {
       content,
       from: {
         userName: socket.userName,
@@ -68,7 +68,7 @@ webChat.on("connection", socket => {
   socket.join(socket.userID);
 
   socket.on("private message", ({ content, to }) => {
-    io.of("/web-chat")
+    webChat
       .to(socket.userID)
       .to(to.userID)
       .emit("private message", {
@@ -88,67 +88,50 @@ webChat.on("connection", socket => {
       isJoined: false,
       roomID,
       roomName: roomID,
-      users: [],
-      messages: [],
       hasNewMessages: 0,
     };
     roomStore.saveRoom(roomID, room);
-    io.of("/web-chat").emit("room created", room);
+    webChat.emit("room created", room);
   });
 
-  socket.on("join room", roomID => {
-    const room = roomStore.findRoom(roomID);
-    const user = { userName: socket.userName, userID: socket.userID };
+  socket.on("join room", async roomID => {
     socket.join(roomID);
-    room.users.push(user);
-    roomStore.saveRoom(roomID, room);
-    io.of("/web-chat").emit("join room", { user, roomID });
-    io.of("/web-chat")
-      .to(roomID)
-      .emit("room message", {
-        message: {
-          content: `${socket.userName}님이 입장하셨습니다.`,
-        },
-        roomID,
-      });
+    const usersID = [...(await webChat.in(roomID).allSockets())];
+    const users = await usersID.map(id => {
+      const { userName, userID } = userStore.findUser(id);
+      return { userName, userID };
+    });
+
+    webChat.emit("join room", { users, userID: socket.userID, roomID });
+    webChat.to(roomID).emit("room message", {
+      message: {
+        content: `${socket.userName}님이 입장하셨습니다.`,
+      },
+      roomID,
+    });
   });
 
-  socket.on("leave room", roomID => {
-    const room = roomStore.findRoom(roomID);
-    const user = { userName: socket.userName, userID: socket.userID };
-    socket.leave(roomID);
-    const filteredUsers = room.users.filter(
-      user => user.userID !== socket.userID
-    );
-    room.users = filteredUsers;
-    roomStore.saveRoom(roomID, room);
-    io.of("/web-chat").emit("leave room", { user, roomID });
-    io.of("/web-chat")
-      .to(roomID)
-      .emit("room message", {
-        message: {
-          content: `${socket.userName}님이 퇴장하셨습니다.`,
-        },
-        roomID,
-      });
+  socket.on("leave room", async roomID => {
+    await leaveRoom(roomID);
+  });
+
+  socket.on("delete room", roomID => {
+    deleteRoom(roomID);
   });
 
   socket.on("room message", ({ message, roomID }) => {
-    io.of("/web-chat")
-      .to(roomID)
-      .emit("room message", {
-        message: {
-          content: message,
-          from: {
-            userName: socket.userName,
-            userID: socket.userID,
-          },
+    webChat.to(roomID).emit("room message", {
+      message: {
+        content: message,
+        from: {
+          userName: socket.userName,
+          userID: socket.userID,
         },
-        roomID,
-      });
+      },
+      roomID,
+    });
   });
 
-  socket.on("disconnect", () => {
   socket.on("disconnecting", reason => {
     const joinedRooms = [...socket.rooms];
     joinedRooms.forEach(roomID => {
@@ -161,4 +144,26 @@ webChat.on("connection", socket => {
     });
     userStore.removeUser(socket.userID);
   });
+
+  async function leaveRoom(roomID) {
+    socket.leave(roomID);
+    const usersID = [...(await webChat.in(roomID).allSockets())];
+    if (usersID.length === 0) return deleteRoom(roomID);
+    const users = await usersID.map(id => {
+      const { userName, userID } = userStore.findUser(id);
+      return { userName, userID };
+    });
+    webChat.emit("leave room", { users, userID: socket.userID, roomID });
+    webChat.to(roomID).emit("room message", {
+      message: {
+        content: `${socket.userName}님이 퇴장하셨습니다.`,
+      },
+      roomID,
+    });
+  }
+
+  function deleteRoom(roomID) {
+    roomStore.removeRoom(roomID);
+    webChat.emit("delete room", roomID);
+  }
 });
