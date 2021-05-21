@@ -147,6 +147,12 @@ webChat.on("connection", socket => {
   });
 
   socket.on("disconnect", () => {
+  socket.on("disconnecting", reason => {
+    const joinedRooms = [...socket.rooms];
+    joinedRooms.forEach(roomID => {
+      if (socket.userID === roomID) return;
+      leaveRoom(roomID);
+    });
     socket.broadcast.emit("user disconnected", {
       userID: socket.userID,
       userName: socket.userName,
