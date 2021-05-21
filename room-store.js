@@ -2,6 +2,7 @@ class RoomStoreMethods {
   saveRoom(id, room) {}
   removeRoom(id) {}
   findAllRoom() {}
+  findRoom(id) {}
 }
 
 class RoomStore extends RoomStoreMethods {
