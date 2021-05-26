@@ -95,6 +95,8 @@ webChat.on("connection", socket => {
       roomID,
       roomName: roomID,
       hasNewMessages: 0,
+      messages: [],
+      users: [],
     };
     roomStore.saveRoom(roomID, room);
     webChat.emit("room created", room);
@@ -107,12 +109,10 @@ webChat.on("connection", socket => {
       const { userName, userID } = userStore.findUser(id);
       return { userName, userID };
     });
-
-    webChat.emit("join room", { users, userID: socket.userID, roomID });
-    webChat.to(roomID).emit("room message", {
-      message: {
-        content: `${socket.userName}님이 입장하셨습니다.`,
-      },
+    webChat.to(roomID).emit("join room", {
+      users,
+      userID: socket.userID,
+      userName: socket.userName,
       roomID,
     });
   });
@@ -125,10 +125,10 @@ webChat.on("connection", socket => {
     deleteRoom(roomID);
   });
 
-  socket.on("room message", ({ message, roomID }) => {
+  socket.on("room message", ({ content, roomID }) => {
     webChat.to(roomID).emit("room message", {
       message: {
-        content: message,
+        content,
         from: {
           userName: socket.userName,
           userID: socket.userID,
@@ -154,18 +154,15 @@ webChat.on("connection", socket => {
   async function leaveRoom(roomID) {
     socket.leave(roomID);
     const usersID = [...(await webChat.in(roomID).allSockets())];
-    if (usersID.length === 0) return deleteRoom(roomID);
     const users = await usersID.map(id => {
       const { userName, userID } = userStore.findUser(id);
       return { userName, userID };
     });
-    webChat.emit("leave room", { users, userID: socket.userID, roomID });
-    webChat.to(roomID).emit("room message", {
-      message: {
-        content: `${socket.userName}님이 퇴장하셨습니다.`,
-      },
-      roomID,
-    });
+    webChat
+      .to(roomID)
+      .emit("leave room", { users, userName: socket.userName, roomID });
+
+    if (usersID.length === 0) return deleteRoom(roomID);
   }
 
   function deleteRoom(roomID) {
