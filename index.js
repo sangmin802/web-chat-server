@@ -55,6 +55,12 @@ webChat.on("connection", socket => {
     },
   });
 
+  socket.on("go loby", () => {
+    const newUsers = userStore.findAllUser();
+    const newRooms = roomStore.findAllRoom();
+    webChat.emit("go loby", { newUsers, newRooms });
+  });
+
   socket.on("public message", content => {
     webChat.emit("public message", {
       content,
