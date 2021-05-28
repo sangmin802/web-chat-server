@@ -2,7 +2,8 @@ const crypto = require("crypto");
 const randomID = () => crypto.randomBytes(8).toString("hex");
 const express = require("express");
 const app = express();
-const port = 3001;
+const port = process.env.PORT;
+// const port = 3001
 const { UserStore } = require("./user-store");
 const userStore = new UserStore();
 const { RoomStore } = require("./room-store");
@@ -13,7 +14,7 @@ const server = app.listen(port, () => {
 });
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
   },
 });
 
