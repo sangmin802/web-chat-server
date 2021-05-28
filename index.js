@@ -3,7 +3,6 @@ const randomID = () => crypto.randomBytes(8).toString("hex");
 const express = require("express");
 const app = express();
 const port = process.env.PORT;
-// const port = 3001
 const { UserStore } = require("./user-store");
 const userStore = new UserStore();
 const { RoomStore } = require("./room-store");
