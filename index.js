@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const randomID = () => crypto.randomBytes(8).toString("hex");
 const express = require("express");
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT ?? 3001;
 const { UserStore } = require("./user-store");
 const userStore = new UserStore();
 const { RoomStore } = require("./room-store");
@@ -105,12 +105,12 @@ webChat.on("connection", socket => {
   socket.on("join room", async roomID => {
     socket.join(roomID);
     const usersID = [...(await webChat.in(roomID).allSockets())];
-    const users = await usersID.map(id => {
+    const roomUsers = await usersID.map(id => {
       const { userName, userID } = userStore.findUser(id);
       return { userName, userID };
     });
     webChat.to(roomID).emit("join room", {
-      users,
+      roomUsers,
       userID: socket.userID,
       userName: socket.userName,
       roomID,
@@ -138,9 +138,9 @@ webChat.on("connection", socket => {
     });
   });
 
-  socket.on("disconnecting", reason => {
+  socket.on("disconnecting", async reason => {
     const joinedRooms = [...socket.rooms];
-    joinedRooms.forEach(roomID => {
+    await joinedRooms.forEach(roomID => {
       if (socket.userID === roomID) return;
       leaveRoom(roomID);
     });
@@ -154,15 +154,15 @@ webChat.on("connection", socket => {
   async function leaveRoom(roomID) {
     socket.leave(roomID);
     const usersID = [...(await webChat.in(roomID).allSockets())];
-    const users = await usersID.map(id => {
+    const roomUsers = await usersID.map(id => {
       const { userName, userID } = userStore.findUser(id);
       return { userName, userID };
     });
     webChat
       .to(roomID)
-      .emit("leave room", { users, userName: socket.userName, roomID });
+      .emit("leave room", { roomUsers, userName: socket.userName, roomID });
 
-    if (usersID.length === 0) return deleteRoom(roomID);
+    if (usersID.length === 0) deleteRoom(roomID);
   }
 
   function deleteRoom(roomID) {
