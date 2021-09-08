@@ -42,8 +42,10 @@ webChat.on("connection", socket => {
 
   socket.emit("session", socket.userID);
 
-  socket.emit("users", userStore.findAllUser());
-  socket.emit("rooms", roomStore.findAllRoom());
+  socket.emit("users rooms", {
+    rooms: roomStore.findAllRoom(),
+    users: userStore.findAllUser(),
+  });
 
   socket.broadcast.emit("user connected", {
     userID: socket.userID,
@@ -56,9 +58,9 @@ webChat.on("connection", socket => {
   });
 
   socket.on("go loby", () => {
-    const newUsers = userStore.findAllUser();
-    const newRooms = roomStore.findAllRoom();
-    webChat.emit("go loby", { newUsers, newRooms });
+    const users = userStore.findAllUser();
+    const rooms = roomStore.findAllRoom();
+    webChat.to(socket.userID).emit("users rooms", { users, rooms });
   });
 
   socket.on("public message", content => {
@@ -96,8 +98,9 @@ webChat.on("connection", socket => {
       roomName: roomID,
       hasNewMessages: 0,
       messages: [],
-      users: [],
+      users: [{ userID: socket.userID, userName: socket.userName }],
     };
+    socket.join(roomID);
     roomStore.saveRoom(roomID, room);
     webChat.emit("room created", room);
   });
@@ -109,6 +112,7 @@ webChat.on("connection", socket => {
       const { userName, userID } = userStore.findUser(id);
       return { userName, userID };
     });
+
     webChat.to(roomID).emit("join room", {
       roomUsers,
       userID: socket.userID,
@@ -158,10 +162,14 @@ webChat.on("connection", socket => {
       const { userName, userID } = userStore.findUser(id);
       return { userName, userID };
     });
-    webChat
-      .to(roomID)
-      .emit("leave room", { roomUsers, userName: socket.userName, roomID });
-
+    webChat.to([roomID, socket.userID]).emit("leave room", {
+      roomUsers,
+      userName: socket.userName,
+      userID: socket.userID,
+      roomID,
+      rooms: roomStore.findAllRoom(),
+      users: userStore.findAllUser(),
+    });
     if (usersID.length === 0) deleteRoom(roomID);
   }
 
